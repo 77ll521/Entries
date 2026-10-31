@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>制造企业文案助手 · 网页版</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🛠️</span>
+      <span class="title">制造企业文案助手</span>
+      <span id="modeBadge" class="badge badge-basic">基础款</span>
+      <span class="title-sub">面向山东本土装备制造企业，针对机床零部件快速生成多渠道营销文案</span>
+    </div>
+    <div class="top-actions">
+      <div class="mode-switch" id="modeSwitch">
+        <button class="ms-btn active" data-mode="basic">基础款</button>
+        <button class="ms-btn" data-mode="pro">升级款·AI</button>
+      </div>
+      <button id="btnSettings" class="btn btn-ghost" title="配置 AI 密钥">⚙ 设置</button>
+      <a href="library.html" class="btn btn-ghost" id="btnLibrary" title="浏览 110 个产品 · 330 套现成文案模板">📚 文案模板库</a>
+      <span id="hint" class="hint">粘贴产品参数，一键生成六段文案</span>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="gen">✨ 生成文案</button>
+    <button class="tab-btn" data-tab="product">🔍 产品资料查询</button>
+    <button class="tab-btn" data-tab="template" id="tabBtnTemplate">📝 模板管理</button>
+    <button class="tab-btn" data-tab="help">❓ 使用说明</button>
+  </nav>
+
+  <!-- ===== 生成文案 ===== -->
+  <section class="panel active" id="tab-gen">
+    <div id="proNotice" class="pro-notice" style="display:none">
+      <span>🤖 升级款·AI 模式：将调用你配置的大模型生成更丰富的文案。</span>
+      <span id="proKeyState" class="pro-key-state"></span>
+    </div>
+    <div class="gen-layout">
+      <div class="gen-input-col">
+        <label class="lbl">产品参数 / 产品说明（支持多行、长文本）</label>
+        <textarea id="inputText" placeholder="示例：产品名称：数控车床；行业品类：机床；材质：铸铁；尺寸规格：Φ400×1000mm；交期：30天；认证：ISO9001"></textarea>
+
+        <!-- 智能参数提取：自动填充结构化表单 + 缺失校验 -->
+        <div id="smartParam" class="smart-param">
+          <div class="smart-param-head" id="smartParamHead">
+            <span>🧠 智能参数识别 <span id="smartParamBadge" class="smart-badge">待识别</span></span>
+            <span class="smart-toggle" id="smartParamArrow">▶</span>
+          </div>
+          <div class="smart-param-body" id="smartParamBody" style="display:none">
+            <div class="lbl" style="margin-bottom:6px">识别到的参数（可直接修改，生成时按此为准）：</div>
+            <div class="smart-grid">
+              <div class="smart-field"><label>产品名称</label><input id="pfProduct" data-pf="product" placeholder="未识别"></div>
+              <div class="smart-field"><label>材质</label><input id="pfMaterial" data-pf="material" placeholder="未识别"></div>
+              <div class="smart-field"><label>规格尺寸</label><input id="pfSpec" data-pf="spec" placeholder="未识别"></div>
+              <div class="smart-field"><label>加工精度</label><input id="pfPrecision" data-pf="precision" placeholder="未识别"></div>
+              <div class="smart-field"><label>认证</label><input id="pfCert" data-pf="cert" placeholder="未识别"></div>
+              <div class="smart-field"><label>交期</label><input id="pfDelivery" data-pf="delivery" placeholder="未识别"></div>
+              <div class="smart-field smart-field-wide"><label>适用场景</label><input id="pfScene" data-pf="scene" placeholder="未识别"></div>
+            </div>
+            <div id="smartTips" class="smart-tips" style="display:none"></div>
+            <div class="row-actions" style="margin-top:8px">
+              <button id="btnSmartReextract" class="btn btn-ghost">🔄 重新识别</button>
+              <button id="btnSmartContinue" class="btn btn-primary" style="display:none">仍然继续生成</button>
+            </div>
+          </div>
+        </div>
+        <div id="styleReqWrap" style="display:none">
+          <label class="lbl" style="margin-top:10px">文案风格需求（按老板的要求生成，可留空）</label>
+          <textarea id="styleReq" placeholder="例如：要接地气、突出性价比；面向经销商批发；语气硬气点、强调耐用抗造；不要用夸张词汇……"></textarea>
+        </div>
+        <div class="row-actions">
+          <button id="btnGenerate" class="btn btn-primary">✨ 一键生成六段文案</button>
+          <button id="btnClear" class="btn btn-ghost">清空</button>
+          <button id="btnPolishToggle" class="btn btn-ghost" style="display:none">✍ 智能润色原文案</button>
+        </div>
+
+        <!-- 智能润色面板 -->
+        <div id="polishPanel" class="polish-panel" style="display:none">
+          <label class="lbl">粘贴你要润色的原文案</label>
+          <textarea id="polishInput" placeholder="把你的原始文案粘贴进来，例如一段产品介绍、一段朋友圈文案……"></textarea>
+          <label class="lbl" style="margin-top:10px">特殊需求（可选，留空则按原文直接润色并原样保留格式）</label>
+          <input id="polishStyle" class="polish-style-input" placeholder="如：更接地气口语化 / 精简到300字 / 扩写成正式邮件 / 给出修改说明与对比">
+          <div class="row-actions">
+            <button id="btnPolishRun" class="btn btn-primary">✍ 开始润色</button>
+            <button id="btnPolishCopy" class="btn btn-ghost">复制结果</button>
+          </div>
+          <div class="lbl" style="margin-top:8px">润色结果</div>
+          <textarea id="polishOutput" readonly placeholder="润色后的文案会显示在这里……"></textarea>
+        </div>
+      </div>
+      <div class="gen-output-col">
+        <div class="out-tabs" id="outTabs"></div>
+        <div class="out-content">
+          <textarea id="outText" readonly placeholder="生成结果会显示在这里……"></textarea>
+        </div>
+        <div class="out-actions">
+          <button id="btnCopyOne" class="btn btn-ghost">复制本栏</button>
+          <button id="btnCopyAll" class="btn btn-ghost">复制全部</button>
+          <button id="btnExportTxt" class="btn btn-ghost">导出 TXT</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 产品资料查询 ===== -->
+  <section class="panel" id="tab-product">
+    <div class="prod-toolbar">
+      <label class="lbl-inline">产品编号：</label>
+      <input id="prodKeyword" type="text" placeholder="输入编号，如 CK6140" autocomplete="off">
+      <button id="btnProdSearch" class="btn btn-primary">查询</button>
+      <button id="btnProdImport" class="btn btn-ghost">📂 导入资料（Excel/CSV）</button>
+      <input id="prodFile" type="file" accept=".xlsx,.xls,.csv" style="display:none">
+      <button id="btnProdReload" class="btn btn-ghost">重新加载</button>
+      <span id="prodHint" class="hint small"></span>
+    </div>
+    <div class="prod-candidates" id="candBox" style="display:none">
+      <div class="cand-title">未精确匹配，可能是以下产品（点击选择）</div>
+      <div id="candList" class="cand-list"></div>
+    </div>
+    <div class="prod-main">
+      <div class="prod-table-wrap">
+        <div class="prod-table-title">产品列表（全部产品；点击某行查看 / 编辑 / 删除）</div>
+        <div class="prod-table-scroll">
+          <table class="prod-table">
+            <thead><tr><th>产品编号</th><th>产品名称</th><th>行业品类</th><th>材质</th></tr></thead>
+            <tbody id="prodTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="prod-detail-wrap">
+        <div class="prod-table-title">产品详细资料</div>
+        <textarea id="prodDetail" readonly placeholder="点击表格某行查看详情……"></textarea>
+        <div class="prod-actions">
+          <button id="btnProdFill" class="btn btn-ghost" disabled>填入参数框</button>
+          <button id="btnProdGen" class="btn btn-primary" disabled>填入并生成</button>
+          <button id="btnProdEdit" class="btn btn-ghost" disabled>✏ 编辑</button>
+          <button id="btnProdDel" class="btn btn-danger" disabled>🗑 删除</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 模板管理 ===== -->
+  <section class="panel" id="tab-template">
+    <div class="tpl-toolbar">
+      <label class="lbl-inline">选择行业：</label>
+      <select id="tplIndustry" class="sel"></select>
+      <button id="btnTplAdd" class="btn btn-ghost">＋ 新增行业</button>
+      <button id="btnTplDel" class="btn btn-danger">🗑 删除行业</button>
+      <span class="grow"></span>
+      <button id="btnTplImport" class="btn btn-ghost">📥 导入</button>
+      <button id="btnTplExport" class="btn btn-ghost">📤 导出</button>
+      <button id="btnTplReset" class="btn btn-ghost">🔄 恢复默认</button>
+      <input id="tplFile" type="file" accept=".json" style="display:none">
+    </div>
+    <div id="tplHint" class="hint small">提示：每个字段可存 4 套备选（版本1/2/3 + 自定义），生成时使用当前选中的那一套。</div>
+    <div class="tpl-fields" id="tplFields"></div>
+    <div class="tpl-savebar">
+      <button id="btnTplSave" class="btn btn-primary">💾 保存模板</button>
+    </div>
+  </section>
+
+  <!-- ===== 使用说明 ===== -->
+  <section class="panel" id="tab-help">
+    <div class="help">
+      <h2>制造企业文案助手 · 网页版</h2>
+      <p>本网页版提供<b>基础款</b>能力：用内置的<b>行业模板</b>把产品参数套成六段营销文案，<b>无需联网、无需密钥、打开即用</b>。</p>
+      <h3>快速上手</h3>
+      <ol>
+        <li>在「✨ 生成文案」里粘贴产品参数（带上「产品名称 / 行业品类 / 材质 / 尺寸规格 / 交期 / 认证」效果最佳），点「一键生成六段文案」。</li>
+        <li>结果分 6 个标签：1688 硬核工业风、短视频、朋友圈短文案、AI 绘图 Prompt、博客、邮件。</li>
+        <li>「🔍 产品资料查询」可导入你自己的 Excel/CSV 产品库，按编号查询、点行查看、编辑、删除。</li>
+        <li>「📝 模板管理」可改各行业模板：每个字段有 4 套备选（版本1 稳健 / 版本2 激情 / 版本3 专业 / 自定义）。</li>
+      </ol>
+      <h3>关于数据保存</h3>
+      <p>网页版的数据（产品库、模板修改、AI 密钥）保存在<b>当前浏览器本地</b>。清理浏览器缓存 / 换浏览器会丢失，重要数据请用「📤 导出」备份。</p>
+      <h3>两档模式：基础款 / 升级款</h3>
+      <ul>
+        <li><b>基础款</b>（默认，无需联网）：用内置行业模板套用生成，打开即用、无需密钥。</li>
+        <li><b>升级款·AI</b>：点右上角「⚙ 设置」填入你自己的大模型 API 密钥（如 DeepSeek），保存后切到「升级款·AI」，即可让模型生成更丰富、更贴合的文案。<b>密钥只存你本机浏览器，不会上传</b>。若浏览器直连接口报跨域/网络错误，属正常网络限制，可在「设置」里改用支持跨域的代理接口地址。</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>制造企业文案助手 · 网页版 v1.1</span>
+  </footer>
+  <div class="page-disclaimer">
+    <p>本页面为2026山东省首届大学生AI大模型创新传播大赛评审演示版本，仅用于赛事原创性核验，作品知识产权归参赛团队所有，禁止商用、复刻参赛。</p>
+    <p>仅开放自研核心业务代码用于评审，不含密钥等敏感配置。</p>
+  </div>
+</div>
+
+<!-- 左右两侧竖排赛事水印 -->
+<div class="contest-side contest-left">本页面为2026山东省首届大学生AI大模型创新传播大赛评审演示版本</div>
+<div class="contest-side contest-right">本页面为2026山东省首届大学生AI大模型创新传播大赛评审演示版本</div>
+
+<!-- AI 设置弹层 -->
+<div class="modal-overlay" id="settingsModal" style="display:none">
+  <div class="modal-box">
+    <h3>⚙ AI 设置（升级款）</h3>
+    <p class="modal-tip">密钥只保存在<b>你自己的浏览器</b>，不会上传到任何服务器。<br>默认用 DeepSeek 官方接口，也可改成任意 OpenAI 兼容接口。</p>
+    <label class="modal-lbl">接口地址（API URL）</label>
+    <input id="setApiUrl" class="modal-input" type="text" placeholder="https://api.deepseek.com/v1/chat/completions">
+    <label class="modal-lbl">API 密钥（Key）</label>
+    <input id="setApiKey" class="modal-input" type="password" placeholder="sk-...">
+    <label class="modal-lbl">模型名称（Model）</label>
+    <input id="setModel" class="modal-input" type="text" placeholder="deepseek-chat">
+    <div class="modal-bar">
+      <button id="setTestBtn" class="btn btn-ghost">测试连接</button>
+      <span class="grow"></span>
+      <button id="setCancelBtn" class="btn btn-ghost">取消</button>
+      <button id="setSaveBtn" class="btn btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 已内嵌的数据 -->
+<script src="templates.js"></script>
+<script src="keywords.js"></script>
+<script src="general.js"></script>
+<!-- 广告法合规检测（绝对化用语自动扫描/替换） -->
+<script src="compliance.js"></script>
+<!-- 智能参数提取（本地规则，零依赖） -->
+<script src="parser.js"></script>
+<!-- 主逻辑（含纯前端 xlsx/csv 解析，零外部依赖） -->
+<script src="app.js"></script>
+</body>
+</html>
